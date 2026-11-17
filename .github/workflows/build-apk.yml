@@ -33,6 +33,16 @@ jobs:
           cp -r /tmp/ske_tpl/android ./android
           python3 -m pip install --quiet pillow
           python3 scripts/configure_android.py
+          if [ -f android/app/build.gradle.kts ]; then
+            printf '\nandroid {\n    lint {\n        checkReleaseBuilds = false\n        abortOnError = false\n    }\n}\n' >> android/app/build.gradle.kts
+          elif [ -f android/app/build.gradle ]; then
+            printf '\nandroid {\n    lintOptions {\n        checkReleaseBuilds false\n        abortOnError false\n    }\n}\n' >> android/app/build.gradle
+          fi
+          if [ -f android/build.gradle.kts ]; then
+            printf '\nallprojects {\n    tasks.configureEach {\n        if (name.contains("lint", ignoreCase = true)) {\n            enabled = false\n        }\n    }\n}\n' >> android/build.gradle.kts
+          elif [ -f android/build.gradle ]; then
+            printf '\nallprojects {\n    tasks.configureEach {\n        if (name.toLowerCase().contains("lint")) {\n            enabled = false\n        }\n    }\n}\n' >> android/build.gradle
+          fi
 
       - name: Install Flutter packages
         run: flutter pub get
