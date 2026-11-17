@@ -1,6 +1,10 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:webview_flutter_android/webview_flutter_android.dart';
 
 const String kAppTitle = 'Sinar Kencana Elektronik';
 const String kAppUrl = 'https://ske.wuaze.com/';
@@ -87,6 +91,37 @@ class _SkeWebViewPageState extends State<SkeWebViewPage> {
         ),
       )
       ..loadRequest(Uri.parse(kAppUrl));
+
+    _initAndroidFileSelector();
+  }
+
+  Future<void> _initAndroidFileSelector() async {
+    if (Platform.isAndroid &&
+        _controller.platform is AndroidWebViewController) {
+      final androidController =
+          _controller.platform as AndroidWebViewController;
+      await androidController.setOnShowFileSelector(_handleAndroidFilePicker);
+    }
+  }
+
+  Future<List<String>> _handleAndroidFilePicker(
+    FileSelectorParams params,
+  ) async {
+    try {
+      final picker = ImagePicker();
+      if (params.mode == FileSelectorMode.openMultiple) {
+        final images = await picker.pickMultiImage();
+        return images.map((img) => File(img.path).uri.toString()).toList();
+      }
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.gallery,
+      );
+      if (image == null) return [];
+      return [File(image.path).uri.toString()];
+    } catch (e) {
+      debugPrint('Android file selector error: $e');
+      return [];
+    }
   }
 
   Future<void> _reloadPage() async {
