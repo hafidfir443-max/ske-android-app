@@ -1,0 +1,55 @@
+name: Build Flutter APK
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build-apk:
+    name: Build Sinar Kencana Elektronik APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Generate Android runner & apply SKE config/icon
+        run: |
+          flutter create --platforms=android --org com.sinarkencana --project-name ske_android_app /tmp/ske_tpl
+          rm -rf android
+          cp -r /tmp/ske_tpl/android ./android
+          python3 -m pip install --quiet pillow
+          python3 scripts/configure_android.py
+
+      - name: Install Flutter packages
+        run: flutter pub get
+
+      - name: Analyze Dart code
+        run: flutter analyze
+
+      - name: Build release APK
+        run: flutter build apk --release
+
+      - name: Prepare named APK
+        run: cp build/app/outputs/flutter-apk/app-release.apk SinarKencanaElektronik.apk
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SinarKencanaElektronik-APK
+          path: |
+            SinarKencanaElektronik.apk
+            build/app/outputs/flutter-apk/app-release.apk
